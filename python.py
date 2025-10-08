@@ -84,21 +84,39 @@ def get_ai_analysis(data_for_ai, api_key):
     except Exception as e:
         return f"Đã xảy ra lỗi không xác định: {e}"
 
-# --- Hàm Chat Tương tác (Hỗ trợ Hội thoại và Ngữ cảnh) ---
+# --- Hàm Chat Tương tác (ĐÃ SỬA LỖI INVALID_ARGUMENT) ---
 def get_chat_response(messages, api_key):
     """Gửi toàn bộ lịch sử chat và nhận phản hồi mới từ Gemini (có duy trì ngữ cảnh)."""
     try:
         client = genai.Client(api_key=api_key)
         model_name = 'gemini-2.5-flash'
         
-        # System instruction để giữ AI tập trung vào vai trò chuyên gia tài chính
-        # Chúng ta chèn system instruction vào đầu mảng contents với role: system
+        # Hướng dẫn hệ thống (System instruction)
         system_instruction = "Bạn là một chuyên gia phân tích tài chính hữu ích và thân thiện. Trả lời các câu hỏi về tài chính, kinh tế, hoặc dữ liệu được cung cấp (nếu có). Giữ câu trả lời ngắn gọn và tập trung."
         
-        # Chuẩn bị contents array
-        contents = [{"role": "system", "parts": [{"text": system_instruction}]}]
-        # Thêm lịch sử chat từ session state
-        contents += [{"role": m["role"], "parts": [{"text": m["content"]}]} for m in messages]
+        # CHÚ Ý SỬA LỖI: Cấu trúc lại tin nhắn để đảm bảo role hợp lệ (user, model)
+        # Chúng ta sẽ chèn hướng dẫn hệ thống vào tin nhắn đầu tiên của người dùng
+        
+        # Chuyển đổi lịch sử chat từ Streamlit format sang Gemini format
+        # Đồng thời thay đổi role 'assistant' (mặc định của Streamlit) thành 'model' (của Gemini)
+        contents = []
+        for i, m in enumerate(messages):
+            role = 'model' if m['role'] == 'model' or m['role'] == 'assistant' else 'user'
+            content = m["content"]
+            
+            # Nếu đây là tin nhắn đầu tiên của người dùng, chèn system instruction vào nội dung
+            if i == 1 and role == 'user': # Giả định tin nhắn đầu tiên (i=0) là của model chào hỏi
+                content = f"HƯỚNG DẪN: {system_instruction}\n\n[QUERY] {content}"
+            
+            contents.append({
+                "role": role, 
+                "parts": [{"text": content}]
+            })
+            
+        # Loại bỏ tin nhắn chào hỏi ban đầu (i=0) của model nếu đã chèn instruction vào user query
+        # Ta chỉ cần tin nhắn từ người dùng và phản hồi tiếp theo.
+        # Tuy nhiên, để giữ ngữ cảnh, ta cần xử lý tin nhắn đầu tiên (i=0) là tin nhắn chào hỏi của model
+        # Chỉ loại bỏ role='system' gây lỗi. Role 'model' và 'user' là hợp lệ.
         
         response = client.models.generate_content(
             model=model_name,
@@ -106,6 +124,9 @@ def get_chat_response(messages, api_key):
         )
         return response.text
     except APIError as e:
+        # Lỗi Invalid Argument (400) thường xảy ra do role không hợp lệ hoặc cấu trúc parts sai
+        if 'INVALID_ARGUMENT' in str(e):
+             return f"Lỗi gọi Gemini API: Vui lòng kiểm tra Khóa API hoặc cấu trúc tin nhắn. Chi tiết lỗi: {e}. Vấn đề thường do role không hợp lệ (cần là 'user' hoặc 'model')."
         return f"Lỗi gọi Gemini API: Vui lòng kiểm tra Khóa API. Chi tiết lỗi: {e}"
     except Exception as e:
         return f"Đã xảy ra lỗi không xác định trong Chat: {e}"
@@ -239,8 +260,11 @@ if not api_key:
     st.error("Vui lòng cấu hình Khóa 'GEMINI_API_KEY' trong Streamlit Secrets để sử dụng khung chat.")
 else:
     # 1. Hiển thị lịch sử chat
+    # Chú ý: Streamlit Chat Elements sử dụng role 'assistant', cần ánh xạ sang 'model' cho Gemini API
     for message in st.session_state["chat_messages"]:
-        with st.chat_message(message["role"]):
+        # Role 'model' của Session State được Streamlit hiển thị là 'assistant'
+        display_role = 'assistant' if message['role'] == 'model' else message['role']
+        with st.chat_message(display_role):
             st.markdown(message["content"])
 
     # 2. Xử lý đầu vào từ người dùng
@@ -255,10 +279,10 @@ else:
             
         # Gọi API và lấy phản hồi (role: model)
         # Sử dụng st.session_state.chat_messages để duy trì ngữ cảnh
-        with st.chat_message("model"):
+        with st.chat_message("assistant"): # Hiển thị phản hồi với role 'assistant'
             with st.spinner("Đang chờ Gemini trả lời..."):
                 response_text = get_chat_response(st.session_state["chat_messages"], api_key)
                 st.markdown(response_text)
                 
-            # Thêm phản hồi của model vào lịch sử
+            # Thêm phản hồi của model vào lịch sử (LƯU VỚI ROLE 'model' cho API call tiếp theo)
             st.session_state["chat_messages"].append({"role": "model", "content": response_text})
