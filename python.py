@@ -5,13 +5,14 @@ from google.genai.errors import APIError
 
 # --- Cấu hình Trang Streamlit ---
 st.set_page_config(
-    page_title="App Phân Tích Báo Cáo Tài Chính",
+    page_title="App Phân Tích Báo cáo Tài Chính",
     layout="wide"
 )
 
 st.title("Ứng dụng Phân Tích Báo Cáo Tài Chính & Chat AI 📊")
 
 # --- 1. Khởi tạo Lịch sử Chat trong Session State ---
+# Đảm bảo giữ ngữ cảnh hội thoại giữa các lần tương tác
 if "chat_messages" not in st.session_state:
     st.session_state["chat_messages"] = [
         {
@@ -83,7 +84,7 @@ def get_ai_analysis(data_for_ai, api_key):
     except Exception as e:
         return f"Đã xảy ra lỗi không xác định: {e}"
 
-# --- 2. Hàm Chat Tương tác mới ---
+# --- Hàm Chat Tương tác (Hỗ trợ Hội thoại và Ngữ cảnh) ---
 def get_chat_response(messages, api_key):
     """Gửi toàn bộ lịch sử chat và nhận phản hồi mới từ Gemini (có duy trì ngữ cảnh)."""
     try:
@@ -91,16 +92,18 @@ def get_chat_response(messages, api_key):
         model_name = 'gemini-2.5-flash'
         
         # System instruction để giữ AI tập trung vào vai trò chuyên gia tài chính
-system_instruction = "Bạn là một chuyên gia phân tích tài chính hữu ích và thân thiện. Trả lời các câu hỏi về tài chính, kinh tế, hoặc dữ liệu được cung cấp (nếu có). Giữ câu trả lời ngắn gọn và tập trung."
-
-# Chuẩn bị contents array cho API call: BẮT ĐẦU bằng instruction, sau đó là lịch sử chat
-contents = [{"role": "system", "parts": [{"text": system_instruction}]}]
-contents += [{"role": m["role"], "parts": [{"text": m["content"]}]} for m in messages]
-# ...
-response = client.models.generate_content(
-    model=model_name,
-    contents=contents
-)
+        # Chúng ta chèn system instruction vào đầu mảng contents với role: system
+        system_instruction = "Bạn là một chuyên gia phân tích tài chính hữu ích và thân thiện. Trả lời các câu hỏi về tài chính, kinh tế, hoặc dữ liệu được cung cấp (nếu có). Giữ câu trả lời ngắn gọn và tập trung."
+        
+        # Chuẩn bị contents array
+        contents = [{"role": "system", "parts": [{"text": system_instruction}]}]
+        # Thêm lịch sử chat từ session state
+        contents += [{"role": m["role"], "parts": [{"text": m["content"]}]} for m in messages]
+        
+        response = client.models.generate_content(
+            model=model_name,
+            contents=contents
+        )
         return response.text
     except APIError as e:
         return f"Lỗi gọi Gemini API: Vui lòng kiểm tra Khóa API. Chi tiết lỗi: {e}"
@@ -188,8 +191,8 @@ if uploaded_file is not None:
             st.subheader("5. Nhận xét Tình hình Tài chính (AI)")
             
             # Chuẩn bị dữ liệu để gửi cho AI (đảm bảo chỉ số thanh toán là string nếu là N/A)
-            val_n_1 = f"{thanh_toan_hien_hanh_N_1:.2f}" if isinstance(thanh_toan_hien_hanh_N_1, (int, float)) else thanh_toan_hien_hanh_N_1
-            val_n = f"{thanh_toan_hien_hanh_N:.2f}" if isinstance(thanh_toan_hien_hanh_N, (int, float)) else thanh_toan_hien_hanh_N
+            val_n_1 = f"{thanh_toan_hien_hanh_N_1:.2f}" if isinstance(thanh_toan_hien_hanh_N_1, (int, float)) else str(thanh_toan_hien_hanh_N_1)
+            val_n = f"{thanh_toan_hien_hanh_N:.2f}" if isinstance(thanh_toan_hien_hanh_N, (int, float)) else str(thanh_toan_hien_hanh_N)
             
             data_for_ai = pd.DataFrame({
                 'Chỉ tiêu': [
@@ -206,7 +209,7 @@ if uploaded_file is not None:
                 ]
             }).to_markdown(index=False) 
 
-            if st.button("Yêu cầu AI Phân tích Báo cáo"):
+            if st.button("Yêu cầu AI Phân tích"):
                 api_key = st.secrets.get("GEMINI_API_KEY") 
                 
                 if api_key:
@@ -226,7 +229,7 @@ else:
     st.info("Vui lòng tải lên file Excel để bắt đầu phân tích.")
 
 
-# --- 3. Tích hợp Khung Chat Tương tác ---
+# --- 6. Tích hợp Khung Chat Tương tác ---
 
 st.divider()
 st.subheader("6. Chat với Gemini 💬")
@@ -251,9 +254,9 @@ else:
             st.markdown(prompt)
             
         # Gọi API và lấy phản hồi (role: model)
+        # Sử dụng st.session_state.chat_messages để duy trì ngữ cảnh
         with st.chat_message("model"):
             with st.spinner("Đang chờ Gemini trả lời..."):
-                # Gửi toàn bộ lịch sử để duy trì ngữ cảnh
                 response_text = get_chat_response(st.session_state["chat_messages"], api_key)
                 st.markdown(response_text)
                 
