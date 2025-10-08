@@ -183,3 +183,61 @@ if uploaded_file is not None:
 
 else:
     st.info("Vui lòng tải lên file Excel để bắt đầu phân tích.")
+# --- Chức năng 6: Chat trực tiếp với AI ---
+st.markdown("---")
+st.subheader("💬 Trò chuyện cùng ChatGPT / Gemini AI")
+
+# Tạo session state để lưu lịch sử hội thoại
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+# Ô nhập câu hỏi
+user_message = st.chat_input("Nhập nội dung trao đổi tại đây...")
+
+# Nếu người dùng gửi tin nhắn
+if user_message:
+    st.session_state.chat_history.append({"role": "user", "content": user_message})
+
+    # Lấy API Key từ secrets
+    api_key = st.secrets.get("GEMINI_API_KEY")
+
+    if api_key:
+        try:
+            client = genai.Client(api_key=api_key)
+            model_name = "gemini-2.5-flash"
+
+            # Tạo prompt trò chuyện
+            chat_prompt = [
+                {"role": "system", "content": "Bạn là ChatGPT - một trợ lý AI thông minh, giúp người dùng phân tích và giải thích báo cáo tài chính bằng tiếng Việt, dễ hiểu, súc tích."},
+                {"role": "user", "content": user_message}
+            ]
+
+            with st.spinner("🤖 AI đang phản hồi..."):
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=chat_prompt
+                )
+                ai_reply = response.text
+
+            # Lưu phản hồi vào lịch sử
+            st.session_state.chat_history.append({"role": "assistant", "content": ai_reply})
+
+        except Exception as e:
+            st.session_state.chat_history.append({
+                "role": "assistant",
+                "content": f"❌ Lỗi khi gọi API Gemini: {e}"
+            })
+    else:
+        st.session_state.chat_history.append({
+            "role": "assistant",
+            "content": "⚠️ Chưa cấu hình GEMINI_API_KEY trong Streamlit Secrets."
+        })
+
+# Hiển thị toàn bộ hội thoại
+for msg in st.session_state.chat_history:
+    if msg["role"] == "user":
+        with st.chat_message("user"):
+            st.markdown(msg["content"])
+    else:
+        with st.chat_message("assistant"):
+            st.markdown(msg["content"])
