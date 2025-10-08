@@ -91,16 +91,16 @@ def get_chat_response(messages, api_key):
         model_name = 'gemini-2.5-flash'
         
         # System instruction để giữ AI tập trung vào vai trò chuyên gia tài chính
-        system_instruction = "Bạn là một chuyên gia phân tích tài chính hữu ích và thân thiện. Trả lời các câu hỏi về tài chính, kinh tế, hoặc dữ liệu được cung cấp (nếu có). Giữ câu trả lời ngắn gọn và tập trung."
-        
-        # Chuẩn bị contents array cho API call, bao gồm toàn bộ lịch sử
-        contents = [{"role": m["role"], "parts": [{"text": m["content"]}]} for m in messages]
-        
-        response = client.models.generate_content(
-            model=model_name,
-            contents=contents,
-            system_instruction=system_instruction
-        )
+system_instruction = "Bạn là một chuyên gia phân tích tài chính hữu ích và thân thiện. Trả lời các câu hỏi về tài chính, kinh tế, hoặc dữ liệu được cung cấp (nếu có). Giữ câu trả lời ngắn gọn và tập trung."
+
+# Chuẩn bị contents array cho API call: BẮT ĐẦU bằng instruction, sau đó là lịch sử chat
+contents = [{"role": "system", "parts": [{"text": system_instruction}]}]
+contents += [{"role": m["role"], "parts": [{"text": m["content"]}]} for m in messages]
+# ...
+response = client.models.generate_content(
+    model=model_name,
+    contents=contents
+)
         return response.text
     except APIError as e:
         return f"Lỗi gọi Gemini API: Vui lòng kiểm tra Khóa API. Chi tiết lỗi: {e}"
