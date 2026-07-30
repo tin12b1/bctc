@@ -1,0 +1,12 @@
+
+site_name: Tài liệu web BCTC
+site_description: Tài liệu cho ho-tro-bao-cao-tai-chinh
+
+nav:
+  - Home: index.md
+  - Kiến trúc: architecture.md
+  - Hướng dẫn phát triển: development.md
+  - API: api.md
+
+plugins:
+  - techdocs-core
