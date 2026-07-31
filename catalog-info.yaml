@@ -1,8 +1,8 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: "ho-tro-bao-cao-tai-chinh"
-  description: "Ứng dụng hỗ trợ lập BCTC"
+  name: ho-tro-bao-cao-tai-chinh
+  description: Ứng dụng hỗ trợ lập BCTC
   annotations:
     github.com/project-slug: tin12b1/bctc
     backstage.io/techdocs-ref: dir:.
