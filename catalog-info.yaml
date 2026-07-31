@@ -13,6 +13,7 @@ spec:
   type: website
   lifecycle: development
   owner: group:default/kieu-hoi-tt-bien-mau
+  system: system:default/card
   providesApis:
     - report-api
   consumesApis:
