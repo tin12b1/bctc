@@ -38,7 +38,7 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: API
 metadata:
-  name: reoort-api
+  name: report-api
   description: Hỗ trợ cung cấp các báo cáo liên quan BCTC
 spec:
   type: openapi
