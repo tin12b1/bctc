@@ -7,48 +7,49 @@ metadata:
     github.com/project-slug: tin12b1/bctc
     backstage.io/techdocs-ref: dir:.
   tags:
-    - python-2
-    - react
+    - python-3
 spec:
   type: website
-  lifecycle: development
+  lifecycle: production
   owner: group:default/kieu-hoi-tt-bien-mau
   system: system:default/card
   providesApis:
-    - report-api
-  consumesApis:
     - login-api
+  consumesApis:
+    - report-api
 ---
 apiVersion: backstage.io/v1alpha1
 kind: API
 metadata:
   name: login-api
-  description: Dùng để đăng nhập hệ thống
+  description: Đăng nhập hệ thống
 spec:
   type: openapi
-  lifecycle: development
+  lifecycle: production
   owner: group:default/kieu-hoi-tt-bien-mau
+  system: system:default/card
   definition: |
     openapi: "3.0.0"
     info:
       title: login-api
       version: "1.0.0"
-      description: Dùng để đăng nhập hệ thống
+      description: Đăng nhập hệ thống
     paths: {}
 ---
 apiVersion: backstage.io/v1alpha1
 kind: API
 metadata:
   name: report-api
-  description: Hỗ trợ cung cấp các báo cáo liên quan BCTC
+  description: Báo cáo
 spec:
   type: openapi
-  lifecycle: development
+  lifecycle: production
   owner: group:default/kieu-hoi-tt-bien-mau
+  system: system:default/card
   definition: |
     openapi: "3.0.0"
     info:
       title: report-api
       version: "1.0.0"
-      description: Hỗ trợ cung cấp các báo cáo liên quan BCTC
+      description: Báo cáo
     paths: {}
